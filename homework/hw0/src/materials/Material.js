@@ -1,8 +1,10 @@
 class Material {
+  // NOTE: prefix # means private data of this class
   #flatten_uniforms;
   #flatten_attribs;
-  #vsSrc;
-  #fsSrc;
+  #vsSrc; // vertex shader source
+  #fsSrc; // fragment shader source
+
   // Uniforms is a map, attribs is a Array
   constructor(uniforms, attribs, vsSrc, fsSrc) {
     this.uniforms = uniforms;
@@ -35,4 +37,3 @@ class Material {
     });
   }
 }
-
