@@ -17,6 +17,8 @@
         height: 100%;
       }
     </style>
+
+    <!-- 按顺序加载所有 JS 文件， 最后执行 engine.js -->
     <script src="lib/three.js" defer></script>
     <script src="lib/OrbitControls.js" defer></script>
     <script src="lib/gl-matrix-min.js" defer></script>
@@ -48,6 +50,8 @@
   </head>
 
   <body>
+    <!-- 作为 GPU 渲染输出的目标,
+         WebGL → GPU → framebuffer → canvas → 屏幕 -->
     <canvas id="glcanvas"></canvas>
   </body>
 </html>
