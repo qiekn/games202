@@ -13,7 +13,7 @@ GAMES202Main();
 // 4. 创建灯光
 // 5. 加载模型
 //
-// 然后进入主循环，每一帧调用 reanderer.render()
+// 然后进入主循环，每一帧调用 renderer.render()
 
 function GAMES202Main() {
   // Init canvas and gl
