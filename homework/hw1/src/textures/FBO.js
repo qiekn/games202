@@ -1,8 +1,10 @@
+// FrameBuffer Object 是离屏渲染目标 (不是画到屏幕,而是画到一张纹理)
+// 我们这里主要是用于 Shadow Map
 class FBO {
   constructor(gl) {
     var framebuffer, texture, depthBuffer;
 
-    //定义错误函数
+    // 定义错误函数
     function error() {
       if (framebuffer) gl.deleteFramebuffer(framebuffer);
       if (texture) gl.deleteFramebuffer(texture);
@@ -10,14 +12,14 @@ class FBO {
       return null;
     }
 
-    //创建帧缓冲区对象
+    // 创建帧缓冲区对象
     framebuffer = gl.createFramebuffer();
     if (!framebuffer) {
       console.log("无法创建帧缓冲区对象");
       return error();
     }
 
-    //创建纹理对象并设置其尺寸和参数
+    // 创建纹理对象并设置其尺寸和参数
     texture = gl.createTexture();
     if (!texture) {
       console.log("无法创建纹理对象");
@@ -36,12 +38,13 @@ class FBO {
       gl.UNSIGNED_BYTE,
       null,
     );
-    //gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    // 我们这里是 SM, 必须使用取最近像素 (Nearest) 而不是线性插值 (Linear)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); // 纹理比屏幕小 → 一个像素对应多个 texel
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST); // 纹理比屏幕大 → 一个 texel 被放大
     framebuffer.texture = texture; //将纹理对象存入framebuffer
 
-    //创建渲染缓冲区对象并设置其尺寸和参数
+    // 创建渲染缓冲区对象并设置其尺寸和参数 (专门存深度)
     depthBuffer = gl.createRenderbuffer();
     if (!depthBuffer) {
       console.log("无法创建渲染缓冲区对象");
@@ -56,7 +59,7 @@ class FBO {
       resolution,
     );
 
-    //将纹理和渲染缓冲区对象关联到帧缓冲区对象上
+    // 将纹理和渲染缓冲区对象关联到帧缓冲区对象上
     gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
     gl.framebufferTexture2D(
       gl.FRAMEBUFFER,
@@ -72,14 +75,14 @@ class FBO {
       depthBuffer,
     );
 
-    //检查帧缓冲区对象是否被正确设置
+    // 检查帧缓冲区对象是否被正确设置
     var e = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
     if (gl.FRAMEBUFFER_COMPLETE !== e) {
       console.log("渲染缓冲区设置错误" + e.toString());
       return error();
     }
 
-    //取消当前的focus对象
+    // 取消当前的focus对象
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.bindTexture(gl.TEXTURE_2D, null);
     gl.bindRenderbuffer(gl.RENDERBUFFER, null);

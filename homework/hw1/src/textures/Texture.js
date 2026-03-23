@@ -16,7 +16,7 @@ class Texture {
     const border = 0;
     const srcFormat = gl.RGBA;
     const srcType = gl.UNSIGNED_BYTE;
-    const pixel = new Uint8Array([0, 0, 255, 255]); // opaque blue
+    const pixel = new Uint8Array([0, 0, 255, 255]); // 创建一个 "占位像素"
     gl.texImage2D(
       gl.TEXTURE_2D,
       level,
@@ -28,8 +28,10 @@ class Texture {
       srcType,
       pixel,
     );
-
     gl.bindTexture(gl.TEXTURE_2D, this.texture);
+
+    // 上传真正的图片
+    // Y 翻转是因为 WebGL 坐标原点在左下角, 而图片是左上角
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
     gl.texImage2D(
       gl.TEXTURE_2D,
@@ -39,7 +41,6 @@ class Texture {
       srcType,
       image,
     );
-
     gl.bindTexture(gl.TEXTURE_2D, null);
 
     this.CreateMipmap(gl, image.width, image.height);
@@ -84,6 +85,7 @@ class Texture {
     this.CreateMipmap(gl, width, height);
   }
 
+  // Mipmap 就是不同分辨率的纹理 (1024 → 512 → 256 → 128 → ...)
   CreateMipmap(gl, width, height) {
     gl.bindTexture(gl.TEXTURE_2D, this.texture);
 
