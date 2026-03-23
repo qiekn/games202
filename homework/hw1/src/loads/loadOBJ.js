@@ -1,7 +1,15 @@
+// OBJ/MTL
+// → three.js loader & parser
+// → our own Mesh
+// → create material (shader)
+// → MeshRender
+// → add to renderer
 function loadOBJ(renderer, path, name, objMaterial, transform) {
-  const manager = new THREE.LoadingManager();
+  const manager = new THREE.LoadingManager(); // 用来统一管理资源加载
+  // JS 的语法：给 manager 的 onProgress 属性赋值一个函数
+  // 其实就是注册一个回调函数， Three.js 的 LoadManager 会调用 this.onProgress
   manager.onProgress = function (item, loaded, total) {
-    console.log(item, loaded, total);
+    console.log(item, loaded, total); // 打印加载进度
   };
 
   function onProgress(xhr) {
@@ -12,10 +20,12 @@ function loadOBJ(renderer, path, name, objMaterial, transform) {
   }
   function onError() {}
 
+  // 加载 MTL (材质)
   new THREE.MTLLoader(manager)
     .setPath(path)
     .load(name + ".mtl", function (materials) {
       materials.preload();
+      // 加载 OBJ (几何)
       new THREE.OBJLoader(manager)
         .setMaterials(materials)
         .setPath(path)
@@ -33,20 +43,17 @@ function loadOBJ(renderer, path, name, objMaterial, transform) {
                   { length: geo.attributes.position.count },
                   (v, k) => k,
                 );
+                // prettier-ignore
+                // 转换为自己的纹理 (three.js 的数据 → 自己的数据结构, 后面 three.js 就不再参与渲染了)
                 let mesh = new Mesh(
-                  {
-                    name: "aVertexPosition",
-                    array: geo.attributes.position.array,
-                  },
-                  {
-                    name: "aNormalPosition",
-                    array: geo.attributes.normal.array,
-                  },
+                  { name: "aVertexPosition", array: geo.attributes.position.array, },
+                  { name: "aNormalPosition", array: geo.attributes.normal.array, },
                   { name: "aTextureCoord", array: geo.attributes.uv.array },
                   indices,
                   transform,
                 );
 
+                // 有贴图用贴图，没有就用一个纯色
                 let colorMap = new Texture();
                 if (mat.map != null) {
                   colorMap.CreateImageTexture(renderer.gl, mat.map.image);
@@ -69,6 +76,7 @@ function loadOBJ(renderer, path, name, objMaterial, transform) {
                   transform.modelScaleZ,
                 ];
 
+                // 构建材质 (☆☆☆☆☆)
                 let light = renderer.lights[0].entity;
                 switch (objMaterial) {
                   case "PhongMaterial":
@@ -91,6 +99,7 @@ function loadOBJ(renderer, path, name, objMaterial, transform) {
                     break;
                 }
 
+                // 因为 buildMaterial 是异步的
                 material.then((data) => {
                   let meshRender = new MeshRender(renderer.gl, mesh, data);
                   renderer.addMeshRender(meshRender);
