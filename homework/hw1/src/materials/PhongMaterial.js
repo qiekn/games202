@@ -1,3 +1,4 @@
+// 继承了原来的 Material 类
 class PhongMaterial extends Material {
   constructor(
     color,
@@ -11,6 +12,7 @@ class PhongMaterial extends Material {
     let lightMVP = light.CalcLightMVP(translate, scale);
     let lightIntensity = light.mat.GetIntensity();
 
+    // 调用父类构造函数
     super(
       {
         // Phong
