@@ -9,13 +9,24 @@ if [ ! -f "${HW_DIR}/index.html" ]; then
     exit 1
 fi
 
+URL="http://localhost:${PORT}/${HW_DIR}/index.html"
 echo "Serving at http://localhost:${PORT}"
 echo "Opening ${HW_DIR}/index.html ..."
 
-# Open browser
-start "http://localhost:${PORT}/${HW_DIR}/index.html" 2>/dev/null ||
-xdg-open "http://localhost:${PORT}/${HW_DIR}/index.html" 2>/dev/null ||
-open "http://localhost:${PORT}/${HW_DIR}/index.html" 2>/dev/null &
+# Start HTTP server in background
+python -m http.server ${PORT} &
+SERVER_PID=$!
 
-# Start HTTP server
-python -m http.server ${PORT}
+# Wait for server to be ready
+for i in $(seq 1 20); do
+    curl -s -o /dev/null "http://localhost:${PORT}/" && break
+    sleep 0.2
+done
+
+# Open browser
+start "${URL}" 2>/dev/null ||
+xdg-open "${URL}" 2>/dev/null ||
+open "${URL}" 2>/dev/null &
+
+# Wait for server process
+wait $SERVER_PID
