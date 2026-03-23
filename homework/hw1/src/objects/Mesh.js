@@ -1,16 +1,22 @@
+// TRS means what?
+// T: Transfrom (Position)
+// R: Rotation
+// S: Scale
 class TRSTransform {
   constructor(translate = [0, 0, 0], scale = [1, 1, 1]) {
     this.translate = translate;
     this.scale = scale;
   }
 }
+
+// prettier-ignore
 class Mesh {
   constructor(
-    verticesAttrib,
-    normalsAttrib,
-    texcoordsAttrib,
-    indices,
-    transform,
+    verticesAttrib,  // 顶点坐标
+    normalsAttrib,   // 法线
+    texcoordsAttrib, // 纹理 uv
+    indices,         // 顶点索引
+    transform,       // 变换
   ) {
     this.indices = indices;
     this.count = indices.length;
@@ -50,8 +56,9 @@ class Mesh {
     }
   }
 
-  // prettier-ignore
+  // 静态函数，几何体生成器
   static cube(transform) {
+    // 4 x 6 = 24 vertexes
     const positions = [
       // Front face
       -1.0, -1.0, 1.0,
