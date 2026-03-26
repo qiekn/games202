@@ -2,6 +2,12 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Notes
+
+git comment use:
+if this comment is  task impl: <pa1: task <order>>: <message>
+if this comment is some commen changes: use <feat/chore/fix>: <message>
+
 ## Running the Project
 
 No build step. Serve `index.html` via any static HTTP server:
