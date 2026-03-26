@@ -15,7 +15,7 @@ varying highp vec3 vFragPos;
 varying highp vec3 vNormal;
 
 // Shadow map related variables
-#define NUM_SAMPLES 20
+#define NUM_SAMPLES 50
 #define BLOCKER_SEARCH_NUM_SAMPLES NUM_SAMPLES
 #define PCF_NUM_SAMPLES NUM_SAMPLES
 #define NUM_RINGS 10
@@ -23,6 +23,9 @@ varying highp vec3 vNormal;
 #define EPS 1e-3
 #define PI 3.141592653589793
 #define PI2 6.283185307179586
+
+#define SHADOW_MAP_SIZE 2048.0
+#define TEXEL_SIZE (1.0 / SHADOW_MAP_SIZE)
 
 uniform sampler2D uShadowMap;
 
@@ -89,8 +92,38 @@ float findBlocker( sampler2D shadowMap,  vec2 uv, float zReceiver ) {
 	return 1.0;
 }
 
-float PCF(sampler2D shadowMap, vec4 coords) {
-  return 1.0;
+// PCF (Percentage Closer Filtering)
+// 核心思想：不再只采样一个点来判断阴影，而是在当前片元周围采样多个点，
+// 对每个点分别做深度比较，最后取平均值 → 阴影边缘从硬锯齿变成柔和渐变
+//
+// shadowMap   → 从光源视角渲染得到的深度纹理
+// shadowCoord → 当前片元在光源裁剪空间下的坐标
+// filterSize  → 滤波核半径 (在 shadow map UV 空间下的大小)
+//               单位圆盘采样点 × filterSize = 实际 UV 偏移量
+float PCF(sampler2D shadowMap, vec4 shadowCoord, float filterSize) {
+  // 1. 坐标变换：裁剪空间 [-w, w] → NDC [-1, 1] → 纹理空间 [0, 1]
+  vec3 shadowCoordNDC = shadowCoord.xyz / shadowCoord.w;
+  vec3 shadowCoordUV = shadowCoordNDC * 0.5 + 0.5;
+  float currentDepth = shadowCoordUV.z;
+
+  // 2. 生成泊松圆盘采样点 (在单位圆盘内的随机分布)
+  //    以当前 UV 作为随机种子，保证每个片元有不同但稳定的采样分布
+  //    也可以替换为 uniformDiskSamples() 对比效果差异
+  poissonDiskSamples(shadowCoordUV.xy);
+
+  // 3. 遍历采样点，逐一做深度比较并累加 visibility
+  float visibility = 0.0;
+  for (int i = 0; i < PCF_NUM_SAMPLES; i++) {
+    // 偏移 UV = 当前 UV + 单位圆盘采样点 × 滤波半径
+    vec2 sampleUV = shadowCoordUV.xy + poissonDisk[i] * filterSize;
+    // 从 shadow map 中取出该位置记录的最近深度
+    float closestDepth = unpack(texture2D(shadowMap, sampleUV));
+    // 深度比较：当前深度 > 最近深度 + bias → 在阴影中 (0.0)，否则被照亮 (1.0)
+    visibility += (currentDepth - EPS > closestDepth) ? 0.0 : 1.0;
+  }
+
+  // 4. 返回平均 visibility：0.0 = 完全阴影，1.0 = 完全照亮，中间值 = 半影
+  return visibility / float(PCF_NUM_SAMPLES);
 }
 
 float PCSS(sampler2D shadowMap, vec4 coords){
@@ -157,8 +190,8 @@ vec3 blinnPhong() {
 void main(void) {
 
   float visibility;
-  visibility = useShadowMap(uShadowMap, vPositionFromLight);
-  //visibility = PCF(uShadowMap, vPositionFromLight);
+  //visibility = useShadowMap(uShadowMap, vPositionFromLight);
+  visibility = PCF(uShadowMap, vPositionFromLight, 5.0 * TEXEL_SIZE);
   //visibility = PCSS(uShadowMap, vPositionFromLight);
 
   vec3 phongColor = blinnPhong();
