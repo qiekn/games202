@@ -40,6 +40,8 @@ highp float rand_2to1(vec2 uv ) {
 	return fract(sin(sn) * c);
 }
 
+// 这里是因为框架把深度值编码到了 RGBA 四个通道中 (提高精度)
+// unpack 把它还原为一个 float
 float unpack(vec4 rgbaDepth) {
     const vec4 bitShift = vec4(1.0, 1.0/256.0, 1.0/(256.0*256.0), 1.0/(256.0*256.0*256.0));
     return dot(rgbaDepth, bitShift);
@@ -104,8 +106,29 @@ float PCSS(sampler2D shadowMap, vec4 coords){
 }
 
 
+
+// 这个函数接受两个参数：
+// shadowMap → 从光源视角渲染得到的深度纹理 (shadow map)
+// shadowCoord → 当前片元在光源裁剪空间下的坐标 (vPositionFromLight, 即 LgihtMVP * position)
+//
+// 它要回答一个问题：当前片元是否在阴影中？返回 visibility (1.0 = 被照亮， 0.0 = 在阴影中)
 float useShadowMap(sampler2D shadowMap, vec4 shadowCoord){
-  return 1.0;
+  // 1. 坐标变换 → 从裁剪空间到纹理空间
+  // 经过 MVP 变换后， shadowCoord 是齐次裁剪坐标 (clip space)， 范围是 [-w, w]
+  //   1. 透视除法：shadowCoord.xyz / shadowCoord.w，得到 NDC 坐标，范围 [-1, 1]
+  //   2. 映射到 [0,1]：ndc * 0.5 + 0.5，因为纹理坐标 UV 的范围是 [0, 1]，深度值也需要在 [0, 1]
+  //
+  // 裁剪空间 [-w, w]  →  NDC [-1, 1]  →  纹理空间 [0, 1]
+  vec3 shadowCoordNDC = shadowCoord.xyz / shadowCoord.w;
+  vec3 shadowCoordUV = shadowCoordNDC * 0.5 + 0.5;
+
+  // 2. 采样 shadow map，获取最近深度 (从光源看过去，这个方向上离光源最近的物体的深度)
+  float closestDepth = unpack(texture2D(shadowMap, shadowCoordUV.xy));
+
+  // 3. 比较深度，判断阴影
+  float currentDepth = shadowCoordUV.z; // 当前片元在光源空间的深度
+  float visibility = (currentDepth - EPS > closestDepth) ? 0.0 : 1.0; // EPS bias → shadow acne
+  return visibility;
 }
 
 vec3 blinnPhong() {
@@ -134,12 +157,11 @@ vec3 blinnPhong() {
 void main(void) {
 
   float visibility;
-  //visibility = useShadowMap(uShadowMap, vec4(shadowCoord, 1.0));
-  //visibility = PCF(uShadowMap, vec4(shadowCoord, 1.0));
-  //visibility = PCSS(uShadowMap, vec4(shadowCoord, 1.0));
+  visibility = useShadowMap(uShadowMap, vPositionFromLight);
+  //visibility = PCF(uShadowMap, vPositionFromLight);
+  //visibility = PCSS(uShadowMap, vPositionFromLight);
 
   vec3 phongColor = blinnPhong();
 
-  //gl_FragColor = vec4(phongColor * visibility, 1.0);
-  gl_FragColor = vec4(phongColor, 1.0);
+  gl_FragColor = vec4(phongColor * visibility, 1.0);
 }
