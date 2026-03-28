@@ -38,16 +38,16 @@ highp float rand_1to1(highp float x ) {
 
 highp float rand_2to1(vec2 uv ) { 
   // 0 - 1
-	const highp float a = 12.9898, b = 78.233, c = 43758.5453;
-	highp float dt = dot( uv.xy, vec2( a,b ) ), sn = mod( dt, PI );
-	return fract(sin(sn) * c);
+  const highp float a = 12.9898, b = 78.233, c = 43758.5453;
+  highp float dt = dot( uv.xy, vec2( a,b ) ), sn = mod( dt, PI );
+  return fract(sin(sn) * c);
 }
 
 // 这里是因为框架把深度值编码到了 RGBA 四个通道中 (提高精度)
 // unpack 把它还原为一个 float
 float unpack(vec4 rgbaDepth) {
-    const vec4 bitShift = vec4(1.0, 1.0/256.0, 1.0/(256.0*256.0), 1.0/(256.0*256.0*256.0));
-    return dot(rgbaDepth, bitShift);
+  const vec4 bitShift = vec4(1.0, 1.0/256.0, 1.0/(256.0*256.0), 1.0/(256.0*256.0*256.0));
+  return dot(rgbaDepth, bitShift);
 }
 
 vec2 poissonDisk[NUM_SAMPLES];
@@ -69,7 +69,6 @@ void poissonDiskSamples( const in vec2 randomSeed ) {
 }
 
 void uniformDiskSamples( const in vec2 randomSeed ) {
-
   float randNum = rand_2to1(randomSeed);
   float sampleX = rand_1to1( randNum ) ;
   float sampleY = rand_1to1( sampleX ) ;
@@ -89,7 +88,7 @@ void uniformDiskSamples( const in vec2 randomSeed ) {
 }
 
 float findBlocker( sampler2D shadowMap,  vec2 uv, float zReceiver ) {
-	return 1.0;
+  return 1.0;
 }
 
 // PCF (Percentage Closer Filtering)
