@@ -1,3 +1,6 @@
+// 组织所有的 DrawCall (光源 + 阴影 + 场景), WebGLRender 和 MeshRender class 的关系:
+//  - MeshRender 是真正执行 draw 的
+//  - WebGLRenderer 只是调度
 class WebGLRenderer {
   meshes = [];
   shadowMeshes = [];
@@ -11,6 +14,10 @@ class WebGLRenderer {
   addLight(light) {
     this.lights.push({
       entity: light,
+      // 这里我们给光源添加了一个 Mesh, 让我们能够看到光源在哪.
+      // 详情见:
+      // → engine.js: renderer.addLight(directionLight);
+      // → DirectionalLight.js: this.mesh = Mesh.cube(...);
       meshRender: new MeshRender(this.gl, light.mesh, light.mat),
     });
   }
@@ -39,7 +46,7 @@ class WebGLRenderer {
         this.lights[l].entity.lightPos;
       this.lights[l].meshRender.draw(this.camera);
 
-      // Shadow pass
+      // Shadow pass (1 pass: generate sm)
       if (this.lights[l].entity.hasShadowMap == true) {
         for (let i = 0; i < this.shadowMeshes.length; i++) {
           this.shadowMeshes[i].draw(this.camera);

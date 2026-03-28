@@ -6,7 +6,7 @@ class PointLight {
    * @memberof PointLight
    */
   constructor(lightIntensity, lightColor, hasShadowMap, gl) {
-    this.mesh = Mesh.cube(setTransform(0, 0, 0, 0.2, 0.2, 0.2, 0));
+    this.mesh = Mesh.cube(setTransform(0, 0, 0, 0.2, 0.2, 0.2));
     this.mat = new EmissiveMaterial(lightIntensity, lightColor);
 
     this.hasShadowMap = hasShadowMap;

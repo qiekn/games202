@@ -6,11 +6,20 @@ var fbo;
 
 GAMES202Main();
 
+// 做 5 件事情
+// 1. 创建 WebGL 上下文
+// 2. 创建相机
+// 3. 创建渲染器
+// 4. 创建灯光
+// 5. 加载模型
+//
+// 然后进入主循环，每一帧调用 renderer.render()
+
 function GAMES202Main() {
   // Init canvas and gl
   const canvas = document.querySelector("#glcanvas");
-  canvas.width = window.screen.width;
-  canvas.height = window.screen.height;
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
   const gl = canvas.getContext("webgl");
   if (!gl) {
     alert(
@@ -20,7 +29,7 @@ function GAMES202Main() {
   }
 
   // Add camera
-  const camera = new THREE.PerspectiveCamera(
+  const camera = new THREE.PerspectiveCamera( // fov, aspect, near, far
     75,
     gl.canvas.clientWidth / gl.canvas.clientHeight,
     1e-2,
@@ -82,7 +91,7 @@ function GAMES202Main() {
   // let sphereTransform = setTransform(30, 10, 0, 10, 10, 10);
 
   //loadOBJ(renderer, 'assets/basic/', 'cube', 'PhongMaterial', cubeTransform);
-  // loadOBJ(renderer, 'assets/basic/', 'sphere', 'PhongMaterial', sphereTransform);
+  //loadOBJ(renderer, 'assets/basic/', 'sphere', 'PhongMaterial', sphereTransform);
   //loadOBJ(renderer, 'assets/basic/', 'plane', 'PhongMaterial', floorTransform);
 
   function createGUI() {
@@ -97,11 +106,14 @@ function GAMES202Main() {
     cameraControls.update();
 
     renderer.render();
+    // 浏览器版 game loop, 直译是 “请浏览器在下一帧绘制之前调用 mainLoop"
+    // 帧率是由浏览器控制的
     requestAnimationFrame(mainLoop);
   }
   requestAnimationFrame(mainLoop);
 }
 
+// 把传入的参数打包为一个对象
 function setTransform(t_x, t_y, t_z, s_x, s_y, s_z) {
   return {
     modelTransX: t_x,

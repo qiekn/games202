@@ -17,6 +17,8 @@
         height: 100%;
       }
     </style>
+
+    <!-- 按顺序加载所有 JS 文件， 最后执行 engine.js -->
     <script src="lib/three.js" defer></script>
     <script src="lib/OrbitControls.js" defer></script>
     <script src="lib/gl-matrix-min.js" defer></script>
@@ -28,6 +30,7 @@
     <script src="src/shaders/InternalShader.js" defer></script>
 
     <script src="src/materials/Material.js" defer></script>
+    <script src="src/materials/EmissiveMaterial.js" defer></script>
     <script src="src/materials/ShadowMaterial.js" defer></script>
     <script src="src/materials/PhongMaterial.js" defer></script>
 
@@ -38,7 +41,6 @@
     <script src="src/loads/loadOBJ.js" defer></script>
     <script src="src/loads/loadShader.js" defer></script>
 
-    <script src="src/lights/Light.js" defer></script>
     <script src="src/lights/DirectionalLight.js" defer></script>
     <script src="src/lights/PointLight.js" defer></script>
 
@@ -48,6 +50,8 @@
   </head>
 
   <body>
+    <!-- 作为 GPU 渲染输出的目标,
+         WebGL → GPU → framebuffer → canvas → 屏幕 -->
     <canvas id="glcanvas"></canvas>
   </body>
 </html>
