@@ -31,7 +31,7 @@ vec2 Rand2(inout float p) {
 }
 
 float InitRand(vec2 uv) {
-  vec3 p3  = fract(vec3(uv.xyx) * .1031);
+  vec3 p3 = fract(vec3(uv.xyx) * .1031);
   p3 += dot(p3, p3.yzx + 33.33);
   return fract((p3.x + p3.y) * p3.z);
 }
@@ -40,7 +40,7 @@ vec3 SampleHemisphereUniform(inout float s, out float pdf) {
   vec2 uv = Rand2(s);
   float z = uv.x;
   float phi = uv.y * TWO_PI;
-  float sinTheta = sqrt(1.0 - z*z);
+  float sinTheta = sqrt(1.0 - z * z);
   vec3 dir = vec3(sinTheta * cos(phi), sinTheta * sin(phi), z);
   pdf = INV_TWO_PI;
   return dir;
@@ -122,8 +122,12 @@ vec3 GetGBufferDiffuse(vec2 uv) {
  *
  */
 vec3 EvalDiffuse(vec3 wi, vec3 wo, vec2 uv) {
-  vec3 L = vec3(0.0);
-  return L;
+  vec3 albedo = GetGBufferDiffuse(uv);
+  vec3 n = GetGBufferNormalWorld(uv);
+  if (dot(wi, n) <= 0.0 || dot(wo, n) <= 0.0) {
+    return vec3(0.0);
+  }
+  return albedo / M_PI;
 }
 
 /*
@@ -132,7 +136,10 @@ vec3 EvalDiffuse(vec3 wi, vec3 wo, vec2 uv) {
  *
  */
 vec3 EvalDirectionalLight(vec2 uv) {
-  vec3 Le = vec3(0.0);
+  float visibility = GetGBufferuShadow(uv);
+  vec3 light_dir = normalize(uLightDir);
+  vec3 n = normalize(GetGBufferNormalWorld(uv));
+  vec3 Le = uLightRadiance * visibility * max(0.0, dot(n, light_dir));
   return Le;
 }
 
@@ -140,13 +147,17 @@ bool RayMarch(vec3 ori, vec3 dir, out vec3 hitPos) {
   return false;
 }
 
-#define SAMPLE_NUM 1
+#define SAMPLE_NUM 100
 
 void main() {
   float s = InitRand(gl_FragCoord.xy);
 
-  vec3 L = vec3(0.0);
-  L = GetGBufferDiffuse(GetScreenCoordinate(vPosWorld.xyz));
+  vec2 uv = GetScreenCoordinate(vPosWorld.xyz);
+
+  vec3 wi = normalize(uLightDir);
+  vec3 wo = normalize(uCameraPos - vPosWorld.xyz);
+
+  vec3 L = EvalDirectionalLight(uv) * EvalDiffuse(wi, wo, uv);
   vec3 color = pow(clamp(L, vec3(0.0), vec3(1.0)), vec3(1.0 / 2.2));
   gl_FragColor = vec4(vec3(color.rgb), 1.0);
 }
