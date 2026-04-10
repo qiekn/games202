@@ -143,21 +143,85 @@ vec3 EvalDirectionalLight(vec2 uv) {
   return Le;
 }
 
-bool RayMarch(vec3 ori, vec3 dir, out vec3 hitPos) {
+// |
+// |       p (ray point)
+// |      *
+// |     *
+// |    *
+// |   *
+// |  *
+// | *
+// |*______________  ← scene surface (sceneDepth)
+bool RayMarch(vec3 ori, vec3 dir, out vec3 hit_pos) {
+  float step_size = 0.05;
+  float thickness = 0.3;
+
+  float prev_delta = -1e20;
+
+  for (int i = 1; i <= 50; i++) {
+    float t = float(i) * step_size;
+    vec3 pos = ori + dir * t;
+    vec2 uv = GetScreenCoordinate(pos);
+
+    if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
+      return false;
+    }
+
+    float ray_depth = GetDepth(pos);
+    float scene_depth = GetGBufferDepth(uv);
+
+    float curr_delta = ray_depth - scene_depth;
+    if (prev_delta < 0.0 && curr_delta >= 0.0) {
+      hit_pos = pos;
+      return true;
+    }
+
+    prev_delta = curr_delta;
+  }
+
   return false;
 }
 
-#define SAMPLE_NUM 100
+#define SAMPLE_NUM 2
 
 void main() {
   float s = InitRand(gl_FragCoord.xy);
 
   vec2 uv = GetScreenCoordinate(vPosWorld.xyz);
 
+  vec3 pos = vPosWorld.xyz;
   vec3 wi = normalize(uLightDir);
-  vec3 wo = normalize(uCameraPos - vPosWorld.xyz);
+  vec3 wo = normalize(uCameraPos - pos);
+  vec3 n = normalize(GetGBufferNormalWorld(uv));
 
-  vec3 L = EvalDirectionalLight(uv) * EvalDiffuse(wi, wo, uv);
-  vec3 color = pow(clamp(L, vec3(0.0), vec3(1.0)), vec3(1.0 / 2.2));
+  vec3 L_dir = EvalDirectionalLight(uv) * EvalDiffuse(wi, wo, uv);
+
+  vec3 L_indir = vec3(0.0);
+  for (int i = 0; i < SAMPLE_NUM; i++) {
+    float pdf;
+    vec3 local_dir = SampleHemisphereCos(s, pdf);
+    vec3 b1, b2;
+    LocalBasis(n, b1, b2);
+
+    vec3 dir = normalize(local_dir.x * b1 + local_dir.y * b2 + local_dir.z * n);
+
+    vec3 hit_pos;
+    if (RayMarch(pos, dir, hit_pos)) {
+      vec2 hit_pos_uv = GetScreenCoordinate(hit_pos);
+
+      vec3 wi0 = dir;                         // pos <- hit_pos
+      vec3 wo0 = normalize(uCameraPos - pos); // pos -> camera
+
+      vec3 wi1 = normalize(uLightDir);        // hit_pos -> light
+      vec3 wo1 = normalize(pos - hit_pos);    // hit_pos -> pos
+
+      L_indir += EvalDiffuse(wi0, wo0, uv) / pdf
+          * EvalDiffuse(wi1, wo1, hit_pos_uv)
+          * EvalDirectionalLight(hit_pos_uv);
+    }
+  }
+  L_indir /= vec3(SAMPLE_NUM);
+
+  vec3 color = pow(clamp(L_dir + L_indir, vec3(0.0), vec3(1.0)), vec3(1.0 / 2.2));
   gl_FragColor = vec4(vec3(color.rgb), 1.0);
 }
