@@ -31,7 +31,7 @@ vec2 Rand2(inout float p) {
 }
 
 float InitRand(vec2 uv) {
-	vec3 p3  = fract(vec3(uv.xyx) * .1031);
+  vec3 p3  = fract(vec3(uv.xyx) * .1031);
   p3 += dot(p3, p3.yzx + 33.33);
   return fract((p3.x + p3.y) * p3.z);
 }
