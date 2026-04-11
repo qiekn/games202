@@ -20,29 +20,48 @@ varying highp vec3 vNormal;
 
 const float PI = 3.14159265359;
 
-float DistributionGGX(vec3 N, vec3 H, float roughness)
+// Fersnel
+vec3 fresnelSchlick(vec3 F0, vec3 V, vec3 H)
 {
-    // TODO: To calculate GGX NDF here
+    float cos_theta = dot(V, H);
+    return F0 + (1.0 - F0) * pow(1.0 - cos_theta, 5.0);
 }
 
+// GGX
 float GeometrySchlickGGX(float NdotV, float roughness)
 {
-    // TODO: To calculate Schlick G1 here
+    float r = roughness + 1.0;
+    float k = (r * r) / 8.0;
+    float numerator = NdotV;
+    float denominator = NdotV * (1.0 - k) + k;
 
-    return 1.0;
+    return numerator / denominator;
 }
 
 float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
 {
-    // TODO: To calculate Smith G here
+    float NdotV = max(dot(N, V), 0.0);
+    float NdotL = max(dot(N, L), 0.0);
 
-    return 1.0;
+    float Gv = GeometrySchlickGGX(NdotV, roughness);
+    float Gl = GeometrySchlickGGX(NdotL, roughness);
+
+    return Gv * Gl;
 }
 
-vec3 fresnelSchlick(vec3 F0, vec3 V, vec3 H)
+// Distribuation of normals
+float DistributionGGX(vec3 N, vec3 H, float roughness)
 {
-    // TODO: To calculate Schlick F here
-    return vec3(1.0);
+    float alpha = roughness * roughness;
+    float alpha2 = alpha * alpha;
+    float NdotH = max(dot(N, H), 0.0);
+    float NdotH2 = NdotH * NdotH;
+
+    float numerator = alpha2;
+    float denominator = NdotH2 * (alpha2 - 1.0) + 1.0;
+    denominator = PI * denominator * denominator;
+
+    return numerator / denominator;
 }
 
 //https://blog.selfshadow.com/publications/s2017-shading-course/imageworks/s2017_pbs_imageworks_slides_v2.pdf
@@ -56,18 +75,27 @@ vec3 AverageFresnel(vec3 r, vec3 g)
 vec3 MultiScatterBRDF(float NdotL, float NdotV)
 {
     vec3 albedo = pow(texture2D(uAlbedoMap, vTextureCoord).rgb, vec3(2.2));
+    vec3 one = vec3(1.0);
 
-    vec3 E_o = texture2D(uBRDFLut, vec2(NdotL, uRoughness)).xyz;
-    vec3 E_i = texture2D(uBRDFLut, vec2(NdotV, uRoughness)).xyz;
+    vec3 E_o = texture2D(uBRDFLut, vec2(NdotV, uRoughness)).xyz;
+    vec3 E_i = texture2D(uBRDFLut, vec2(NdotL, uRoughness)).xyz;
 
-    vec3 E_avg = texture2D(uEavgLut, vec2(0, uRoughness)).xyz;
+    vec3 E_avg = texture2D(uEavgLut, vec2(0.0, uRoughness)).xyz;
     // copper
     vec3 edgetint = vec3(0.827, 0.792, 0.678);
     vec3 F_avg = AverageFresnel(albedo, edgetint);
 
-    // TODO: To calculate fms and missing energy here
+    // uncolored additional BRDF
+    vec3 fms_num = (one - E_o) * (one - E_i);
+    vec3 fms_den = PI * max(one - E_avg, vec3(1e-5));
+    vec3 term = fms_num / fms_den;
 
-    return vec3(1.0);
+    // color term
+    vec3 color_num = F_avg * E_avg;
+    vec3 color_den = max(one - F_avg * (one - E_avg), vec3(1e-5));
+    vec3 color_term = color_num / color_den;
+
+    return term * color_term;
 }
 
 void main(void) {
