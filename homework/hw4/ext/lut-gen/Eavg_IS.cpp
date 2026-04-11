@@ -26,12 +26,20 @@ Vec2f Hammersley(uint32_t i, uint32_t N) {
 }
 
 Vec3f ImportanceSampleGGX(Vec2f Xi, Vec3f N, float roughness) {
-
   float a = roughness * roughness;
+  float phi = 2.0f * PI * Xi.y;
+  float cosTheta = std::sqrt((1.0f - Xi.x) / (1.0f + (a * a - 1.0f) * Xi.x));
+  float sinTheta = std::sqrt(std::max(1.0f - cosTheta * cosTheta, 0.0f));
 
-  // TODO: Copy the code from your previous work - Bonus 1
+  Vec3f H = Vec3f(std::cos(phi) * sinTheta, std::sin(phi) * sinTheta, cosTheta);
 
-  return Vec3f(1.0f);
+  Vec3f up = std::abs(N.z) < 0.999f ? Vec3f(0.0f, 0.0f, 1.0f)
+                                    : Vec3f(1.0f, 0.0f, 0.0f);
+  Vec3f tangent = normalize(cross(up, N));
+  Vec3f bitangent = cross(N, tangent);
+
+  Vec3f sampleVec = tangent * H.x + bitangent * H.y + N * H.z;
+  return normalize(sampleVec);
 }
 
 Vec3f IntegrateEmu(Vec3f V, float roughness, float NdotV, Vec3f Ei) {
@@ -49,10 +57,10 @@ Vec3f IntegrateEmu(Vec3f V, float roughness, float NdotV, Vec3f Ei) {
     float VoH = std::max(dot(V, H), 0.0f);
     float NoV = std::max(dot(N, V), 0.0f);
 
-    // TODO: To calculate Eavg here - Bonus 1
+    Eavg += Ei * (2.0f * NoV);
   }
 
-  return Vec3f(1.0);
+  return Eavg / sample_count;
 }
 
 void setRGB(int x, int y, float alpha, unsigned char *data) {
