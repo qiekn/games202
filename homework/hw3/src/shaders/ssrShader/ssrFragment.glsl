@@ -153,26 +153,39 @@ vec3 EvalDirectionalLight(vec2 uv) {
 // | *
 // |*______________  ← scene surface (sceneDepth)
 bool RayMarch(vec3 ori, vec3 dir, out vec3 hit_pos) {
-  float step_size = 0.05;
-  float thickness = 0.3;
-
   float prev_delta = -1e20;
 
-  for (int i = 1; i <= 50; i++) {
-    float t = float(i) * step_size;
-    vec3 pos = ori + dir * t;
-    vec2 uv = GetScreenCoordinate(pos);
+  vec3 start_pos = ori;
+  vec4 start_clip = vWorldToScreen * vec4(start_pos, 1.0);
+ float start_inv_w = 1.0 / start_clip.w;
+  vec2 start_uv = (start_clip.xy * start_inv_w) * 0.5 + 0.5;
 
-    if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
+  vec3 end_pos = ori + 100.0 * dir;
+  vec4 end_clip = vWorldToScreen * vec4(end_pos, 1.0);
+ float end_inv_w = 1.0 / end_clip.w;
+  vec2 end_uv = (end_clip.xy * end_inv_w) * 0.5 + 0.5;
+
+  vec2 diff_uv = end_uv - start_uv;
+  float diff_inv_w = end_inv_w - start_inv_w;
+
+  vec2 curr_uv = start_uv;
+  float curr_inv_w = start_inv_w;
+  float step_size = 0.05;
+
+  for (int i = 1; i <= 50; i++) {
+    curr_uv = start_uv + float(i) * step_size * diff_uv;
+    curr_inv_w = start_inv_w + float(i) * step_size * diff_inv_w;
+
+    if (curr_uv.x < 0.0 || curr_uv.x > 1.0 || curr_uv.y < 0.0 || curr_uv.y > 1.0) {
       return false;
     }
 
-    float ray_depth = GetDepth(pos);
-    float scene_depth = GetGBufferDepth(uv);
+    float ray_depth = 1.0 / curr_inv_w;
+    float scene_depth = GetGBufferDepth(curr_uv);
 
     float curr_delta = ray_depth - scene_depth;
     if (prev_delta < 0.0 && curr_delta >= 0.0) {
-      hit_pos = pos;
+      hit_pos = GetGBufferPosWorld(curr_uv);
       return true;
     }
 
@@ -182,7 +195,7 @@ bool RayMarch(vec3 ori, vec3 dir, out vec3 hit_pos) {
   return false;
 }
 
-#define SAMPLE_NUM 2
+#define SAMPLE_NUM 4
 
 void main() {
   float s = InitRand(gl_FragCoord.xy);
