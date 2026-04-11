@@ -71,6 +71,24 @@ float GeometrySmith(float roughness, float NoV, float NoL) {
   return ggx1 * ggx2;
 }
 
+Vec3f EvalBRDF(Vec3f N, Vec3f V, Vec3f L, float roughness) {
+  float NoV = std::max(dot(N, V), 0.0f);
+  float NoL = std::max(dot(N, L), 0.0f);
+
+  if (NoV <= 0.0f || NoL <= 0.0f) {
+    return Vec3f(0.0f);
+  }
+
+  Vec3f H = normalize(V + L);
+  float D = DistributionGGX(N, H, roughness);
+  float G = GeometrySmith(roughness, NoV, NoL);
+
+  float fr = (D * G) / std::max(4.0f * NoV * NoL, 1e-6f);
+
+  // 这里预计算 E(mu)，不带 Fresnel，三个通道相同
+  return Vec3f(fr, fr, fr);
+}
+
 Vec3f IntegrateBRDF(Vec3f V, float roughness, float NdotV) {
   float A = 0.0;
   float B = 0.0;
@@ -80,7 +98,15 @@ Vec3f IntegrateBRDF(Vec3f V, float roughness, float NdotV) {
 
   samplePoints sampleList = squareToCosineHemisphere(sample_count);
   for (int i = 0; i < sample_count; i++) {
-    // TODO: To calculate (fr * ni) / p_o here
+    Vec3f L = sampleList.directions[i];
+    float pdf = sampleList.PDFs[i];
+    float NdotL = std::max(dot(N, L), 0.0f);
+
+    Vec3f fr = EvalBRDF(N, V, L, roughness);
+    Vec3f value = fr * (NdotL / pdf);
+    A += value.x;
+    B += value.y;
+    C += value.z;
   }
 
   return {A / sample_count, B / sample_count, C / sample_count};
