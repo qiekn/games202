@@ -1,8 +1,10 @@
 #pragma once
 
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif
 
-#include <iostream>
+#include <iostream> // IWYU pragma: keep
 
 #define LOG(msg) std::cout << "[" << __FILE__ << ", " << __FUNCTION__ << ", " << __LINE__ << "]: " << msg << std::endl;
 

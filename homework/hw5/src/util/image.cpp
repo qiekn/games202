@@ -1,4 +1,5 @@
 #include "image.h"
+#include "util/imageutil.h"
 
 Buffer2D<float> ReadFloatImage(const std::string& filename) {
   int width, height;

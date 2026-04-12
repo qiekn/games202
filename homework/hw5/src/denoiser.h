@@ -1,11 +1,12 @@
 #pragma once
 
+#ifndef NOMINMAX
 #define NOMINMAX
-#include <string>
+#endif
 
-#include "filesystem/path.h"
+#include <vector>
 
-#include "util/image.h"
+#include "util/buffer.h"
 #include "util/mathutil.h"
 
 struct FrameInfo {

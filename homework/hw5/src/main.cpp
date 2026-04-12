@@ -2,6 +2,7 @@
 #include <string>
 
 #include "denoiser.h"
+#include "filesystem/path.h"
 #include "util/image.h"
 #include "util/mathutil.h"
 

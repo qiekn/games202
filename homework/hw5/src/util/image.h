@@ -1,7 +1,6 @@
 #pragma once
 
 #include "buffer.h"
-#include "imageutil.h"
 #include "mathutil.h"
 
 Buffer2D<float> ReadFloatImage(const std::string& filename);
